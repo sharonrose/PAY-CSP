@@ -1,0 +1,131 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "sourceImageVhdUri1": {
+            "type": "string",
+            "defaultValue": "https://elastifile.blob.core.windows.net/vhds/osdisk_tX3jiezr2y.vhd"
+        },
+        "sourceImageVhdUri2": {
+            "type": "string",
+            "defaultValue": "https://elastifile.blob.core.windows.net/vhds/osdisk_jRodUFkwP1.vhd"
+        },
+        "sourceImageVhdUri3": {
+            "type": "string",
+            "defaultValue": "https://elastifile.blob.core.windows.net/vhds/osdisk_Bp4dTg6zni.vhd"
+        },
+        "sourceImageVhdUri4": {
+            "type": "string",
+            "defaultValue": "https://elastifile.blob.core.windows.net/vhds/osdisk_Xpadcd2WGj.vhd"
+        },
+        "sourceImageVhdUri5": {
+            "type": "string",
+            "defaultValue": "https://elastifile.blob.core.windows.net/vhds/osdisk_vcTdPqJ7jD.vhd"
+        },
+        "imageName1": {
+            "type": "string",
+            "defaultValue": "emanageImage"
+        },
+        "imageName2": {
+            "type": "string",
+            "defaultValue": "emanage2015Image"
+        },
+        "imageName3": {
+            "type": "string",
+            "defaultValue": "elfs2015Image"
+        },
+        "imageName4": {
+            "type": "string",
+            "defaultValue": "elfsImage"
+        },
+        "imageName5": {
+            "type": "string",
+            "defaultValue": "serverImage"
+        }
+    },
+    "variables": {
+        "computeApiVersion": "2017-03-30"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/images",
+            "apiVersion": "[variables('computeApiVersion')]",
+            "name": "[parameters('imageName1')]",
+            "location": "westus",
+            "properties": {
+                "storageProfile": {
+                    "osDisk": {
+                        "osType": "Linux",
+                        "osState": "Generalized",
+                        "blobUri": "[parameters('sourceImageVhdUri1')]",
+                        "storageAccountType": "Premium_LRS"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/images",
+            "apiVersion": "[variables('computeApiVersion')]",
+            "name": "[parameters('imageName2')]",
+            "location": "westus",
+            "properties": {
+                "storageProfile": {
+                    "osDisk": {
+                        "osType": "Linux",
+                        "osState": "Generalized",
+                        "blobUri": "[parameters('sourceImageVhdUri2')]",
+                        "storageAccountType": "Premium_LRS"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/images",
+            "apiVersion": "[variables('computeApiVersion')]",
+            "name": "[parameters('imageName3')]",
+            "location": "westus",
+            "properties": {
+                "storageProfile": {
+                    "osDisk": {
+                        "osType": "Linux",
+                        "osState": "Generalized",
+                        "blobUri": "[parameters('sourceImageVhdUri3')]",
+                        "storageAccountType": "Premium_LRS"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/images",
+            "apiVersion": "[variables('computeApiVersion')]",
+            "name": "[parameters('imageName4')]",
+            "location": "westus",
+            "properties": {
+                "storageProfile": {
+                    "osDisk": {
+                        "osType": "Linux",
+                        "osState": "Generalized",
+                        "blobUri": "[parameters('sourceImageVhdUri4')]",
+                        "storageAccountType": "Premium_LRS"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/images",
+            "apiVersion": "[variables('computeApiVersion')]",
+            "name": "[parameters('imageName5')]",
+            "location": "westus",
+            "properties": {
+                "storageProfile": {
+                    "osDisk": {
+                        "osType": "Linux",
+                        "osState": "Generalized",
+                        "blobUri": "[parameters('sourceImageVhdUri5')]",
+                        "storageAccountType": "Premium_LRS"
+                    }
+                }
+            }
+        }
+    ]
+}
