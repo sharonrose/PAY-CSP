@@ -1,0 +1,482 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "variables": {
+        "uniqueString": "[uniquestring(resourceGroup().id)]",
+        "publicIPdnsPrefix": "emanage",
+        "publicIPdnsPrefixem": "emanage2015",
+        "vnode1":"vnode001",
+        "vnode2":"vnode002",
+        "vnode3":"vnode003",
+        "vnode4":"vnode004"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2015-06-15",
+            "name": "elastifileFirewall",
+            "location": "westus",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "default-allow-ssh",
+                        "properties": {
+                            "description": "default-allow-ssh",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1000,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "Any",
+                        "properties": {
+                            "description": "Any",
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "0-65535",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1010,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "anyout",
+                        "properties": {
+                            "description": "anyout",
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "0-65535",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Outbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2015-06-15",
+            "name": "elastifilevnet",
+            "location": "westus",
+            "dependsOn": [],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/24"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "default",
+                        "properties": {
+                            "addressPrefix": "10.0.0.0/24"
+                        }
+                    }
+                ],
+                "dhcpOptions": {
+                    "dnsServers": []
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2015-06-15",
+            "name": "elastifileNetwork",
+            "location": "westus",
+            "dependsOn": [],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/16"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "ECFSsubnet",
+                        "properties": {
+                            "addressPrefix": "10.0.0.0/24"
+                        }
+                    }
+                ],
+                "dhcpOptions": {
+                    "dnsServers": []
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "emanagePublicIP",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4,
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(variables('publicIPdnsPrefix'),variables('uniqueString'))]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "emanageVMNic",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.0.8",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'emanagePublicIP')]"
+                            },
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork'), '/subnets/ECFSsubnet')]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', 'emanagePublicIP')]",
+                "[resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork')]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "emanage",
+            "apiVersion": "2016-04-30-preview",
+            "location": "westus",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_L4s"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "osdisk_tX3jiezr2y",
+                        "createOption": "Attach",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS",
+                            "id": "[resourceId('Microsoft.Compute/disks', 'osdisk_tX3jiezr2y')]"
+                        },
+                        "diskSizeGB": 30
+                    },
+                    "dataDisks": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', 'emanageVMNic')]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', 'emanageVMNic')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "emanage2015PublicIP",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4,
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(variables('publicIPdnsPrefixem'),variables('uniqueString'))]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "emanage2015VMNic",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.0.9",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'emanage2015PublicIP')]"
+                            },
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork'), '/subnets/ECFSsubnet')]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', 'emanage2015PublicIP')]",
+                "[resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork')]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "emanage2015",
+            "apiVersion": "2016-04-30-preview",
+            "location": "westus",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_L4s"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "osdisk_jRodUFkwP1",
+                        "createOption": "Attach",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS",
+                            "id": "[resourceId('Microsoft.Compute/disks', 'osdisk_jRodUFkwP1')]"
+                        },
+                        "diskSizeGB": 30
+                    },
+                    "dataDisks": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', 'emanage2015VMNic')]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', 'emanage2015VMNic')]"
+            ]
+        },
+              {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "vnode-001PublicIP",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4,
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(variables('vnode1'),variables('uniqueString'))]"
+                }
+            },
+            "dependsOn": []
+        },
+  {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "vnode-001VMNic",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.0.4",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'vnode-001PublicIP')]"
+                            },
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork'), '/subnets/ECFSsubnet')]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', 'vnode-001PublicIP')]",
+                "[resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork')]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+            ]
+        },
+          {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "vnode-002PublicIP",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4,
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(variables('vnode2'),variables('uniqueString'))]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "vnode-002VMNic",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.0.5",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'vnode-002PublicIP')]"
+                            },
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork'), '/subnets/ECFSsubnet')]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', 'vnode-002PublicIP')]",
+                "[resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork')]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+            ]
+        },
+          {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "vnode-003PublicIP",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4,
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(variables('vnode3'),variables('uniqueString'))]"
+                }
+            },
+            "dependsOn": []
+        },
+         {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "vnode-003VMNic",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.0.6",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'vnode-003PublicIP')]"
+                            },
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork'), '/subnets/ECFSsubnet')]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', 'vnode-003PublicIP')]",
+                "[resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork')]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+            ]
+        },
+                {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "vnode-004PublicIP",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4,
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(variables('vnode4'),variables('uniqueString'))]"
+                }
+            },
+            "dependsOn": []
+        },
+         {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "vnode-004VMNic",
+            "apiVersion": "2017-03-01",
+            "location": "westus",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.0.7",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'vnode-004PublicIP')]"
+                            },
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork'), '/subnets/ECFSsubnet')]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', 'vnode-004PublicIP')]",
+                "[resourceId('Microsoft.Network/virtualNetworks', 'elastifileNetwork')]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', 'elastifileFirewall')]"
+            ]
+        }
+    ]
+}
